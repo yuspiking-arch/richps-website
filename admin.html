@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rich PS Admin Panel</title>
+    
+    <!-- ============================================= -->
+    <!-- ===== SESSION CHECK - HARUS LOGIN DULU ===== -->
+    <!-- ============================================= -->
+    <script>
+        (function checkAdminSession() {
+            const sessionKey = 'richps_admin_session';
+            const loginUrl = 'admin-login.html';
+
+            // Cek session di localStorage
+            let session = localStorage.getItem(sessionKey);
+            
+            // Jika tidak ada, cek di sessionStorage
+            if (!session) {
+                session = sessionStorage.getItem(sessionKey);
+            }
+
+            if (session) {
+                try {
+                    const data = JSON.parse(session);
+                    // Cek apakah session masih valid (belum expired)
+                    if (data.expiry > Date.now()) {
+                        // Session valid, lanjutkan
+                        console.log('✅ Session valid untuk:', data.username);
+                        return;
+                    } else {
+                        // Session expired
+                        localStorage.removeItem(sessionKey);
+                        sessionStorage.removeItem(sessionKey);
+                        console.log('⏰ Session expired, redirect ke login');
+                    }
+                } catch (e) {
+                    console.error('❌ Error parsing session:', e);
+                    localStorage.removeItem(sessionKey);
+                    sessionStorage.removeItem(sessionKey);
+                }
+            }
+
+            // Tidak ada session valid, redirect ke login
+            console.log('🔒 No valid session, redirecting to login...');
+            window.location.href = loginUrl;
+        })();
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* =============================================
+           GLOBAL STYLES
+           ============================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b0e14;
+            color: #e0e4ec;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        body.light-mode {
+            background: #f0f2f5;
+            color: #1a1f2a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* =============================================
+           HEADER
+           ============================================= */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #ff6b35;
+        }
+
+        .panel-header h1 {
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-header h1 i {
+            color: #ff6b35;
+        }
+
+        .panel-header .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-logout {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ff4757, #e63946);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+        }
+
+        .btn-logout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 71, 87, 0.6);
+        }
+
+        .btn-logout i {
+            font-size: 1rem;
+        }
+
+        /* =============================================
+           TABS
+           ============================================= */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #2a313c;
+            padding-bottom: 12px;
+        }
+
+        body.light-mode .tabs {
+            border-color: #d0d5dd;
+        }
+
+        .tab-btn {
+            padding: 10px 24px;
+            border-radius: 50px;
+            border: 2px solid transparent;
+            background: transparent;
+            color: #6a7488;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tab-btn:hover {
+            color: #ff6b35;
+            border-color: rgba(255, 107, 53, 0.3);
+        }
+
+        .tab-btn.active {
+            color: #ff6b35;
+            border-color: #ff6b35;
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        body.light-mode .tab-btn {
+            color: #6a7488;
+        }
+
+        body.light-mode .tab-btn.active {
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* =============================================
+           STATS
+           ============================================= */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(145deg, #1a1f2a, #131820);
+            border: 1px solid #2a313c;
+            border-radius: 16px;
+            padding: 18px 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: #ff6b35;
+        }
+
+        body.light-mode .stat-card {
+            background: linear-gradient(145deg, #ffffff, #e8eaed);
+            border-color: #d0d5dd;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ff6b35;
+        }
+
+        .stat-card .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6a7488;
+            margin-top: 4px;
+        }
+
+        /* =============================================
+           FORM
+           ============================================= */
+        .form-container {
+            background: linear-gradient(145deg, #1a1f2a, #131820);
+            border: 1px solid #2a313c;
+            border-radius: 20px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .form-container:hover {
+            border-color: #ff6b35;
+        }
+
+        body.light-mode .form-container {
+            background: linear-gradient(145deg, #ffffff, #e8eaed);
+            border-color: #d0d5dd;
+        }
+
+        .form-container h2 {
+            font-size: 1.3rem;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-container h2 i {
+            color: #ff6b35;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #bcc5d6;
+        }
+
+        body.light-mode .form-group label {
+            color: #4a5568;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #2a313c;
+            background: #0b0e14;
+            color: #e0e4ec;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        body.light-mode .form-group input,
+        body.light-mode .form-group textarea,
+        body.light-mode .form-group select {
+            background: #ffffff;
+            color: #1a1f2a;
+            border-color: #d0d5dd;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Change Inputs */
+        .change-item-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .change-item-input select {
+            width: 120px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #2a313c;
+            background: #0b0e14;
+            color: #e0e4ec;
+            font-size: 0.8rem;
+        }
+
+        body.light-mode .change-item-input select {
+            background: #ffffff;
+            color: #1a1f2a;
+            border-color: #d0d5dd;
+        }
+
+        .change-item-input input {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #2a313c;
+            background: #0b0e14;
+            color: #e0e4ec;
+            font-size: 0.85rem;
+        }
+
+        body.light-mode .change-item-input input {
+            background: #ffffff;
+            color: #1a1f2a;
+            border-color: #d0d5dd;
+        }
+
+        .change-item-input .remove-change {
+            background: none;
+            border: none;
+            color: #ff4757;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .change-item-input .remove-change:hover {
+            background: rgba(255, 71, 87, 0.15);
+        }
+
+        .add-change-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: 1px dashed #2a313c;
+            color: #6a7488;
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .add-change-btn:hover {
+            border-color: #ff6b35;
+            color: #ff6b35;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* =============================================
+           BUTTONS
+           ============================================= */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ff6b35, #ff4500);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.6);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #2a313c;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            border: 2px solid #4a5568;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-secondary:hover {
+            background: #3a4351;
+            border-color: #ff6b35;
+            transform: translateY(-2px);
+        }
+
+        body.light-mode .btn-secondary {
+            background: #e8eaed;
+            color: #1a1f2a;
+            border-color: #d0d5dd;
+        }
+
+        body.light-mode .btn-secondary:hover {
+            background: #d5d8dd;
+            border-color: #ff6b35;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            border-color: #ff4757;
+            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: #e63946;
+            box-shadow: 0 8px 30px rgba(255, 71, 87, 0.5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00b894, #00a381);
+            border-color: #00b894;
+            box-shadow: 0 4px 20px rgba(0, 184, 148, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 8px 30px rgba(0, 184, 148, 0.5);
+        }
+
+        /* =============================================
+           LIST CONTAINER
+           ============================================= */
+        .list-container {
+            background: linear-gradient(145deg, #1a1f2a, #131820);
+            border: 1px solid #2a313c;
+            border-radius: 20px;
+            padding: 25px 30px;
+            transition: all 0.3s;
+        }
+
+        .list-container:hover {
+            border-color: #ff6b35;
+        }
+
+        body.light-mode .list-container {
+            background: linear-gradient(145deg, #ffffff, #e8eaed);
+            border-color: #d0d5dd;
+        }
+
+        .list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a313c;
+        }
+
+        body.light-mode .list-header {
+            border-color: #d0d5dd;
+        }
+
+        .list-header h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .list-header h2 i {
+            color: #ff6b35;
+        }
+
+        .list-header .badge {
+            background: #ff6b35;
+            color: #fff;
+            padding: 3px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* =============================================
+           ITEM CARDS
+           ============================================= */
+        .item-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid #2a313c;
+            transition: all 0.3s;
+        }
+
+        .item-card:hover {
+            border-color: #ff6b35;
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        body.light-mode .item-card {
+            background: rgba(0, 0, 0, 0.02);
+            border-color: #d0d5dd;
+        }
+
+        body.light-mode .item-card:hover {
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .item-card .content {
+            flex: 1;
+        }
+
+        .item-card .title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #f0f4fa;
+        }
+
+        body.light-mode .item-card .title {
+            color: #1a1f2a;
+        }
+
+        .item-card .sub {
+            font-size: 0.85rem;
+            color: #bcc5d6;
+            margin-top: 4px;
+        }
+
+        body.light-mode .item-card .sub {
+            color: #4a5568;
+        }
+
+        .item-card .meta {
+            font-size: 0.75rem;
+            color: #6a7488;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+        }
+
+        .item-card .meta i {
+            font-size: 0.7rem;
+        }
+
+        .item-card .changes {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            color: #bcc5d6;
+        }
+
+        body.light-mode .item-card .changes {
+            color: #4a5568;
+        }
+
+        .item-card .changes .change-line {
+            display: block;
+            padding: 2px 0;
+        }
+
+        .item-card .changes .change-line .badge-type {
+            display: inline-block;
+            font-size: 0.55rem;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 50px;
+            margin-right: 6px;
+            text-transform: uppercase;
+        }
+
+        .badge-type.add {
+            background: rgba(0, 184, 148, 0.2);
+            color: #00b894;
+        }
+        .badge-type.fix {
+            background: rgba(255, 165, 0, 0.2);
+            color: #e67e22;
+        }
+        .badge-type.remove {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+        .badge-type.change {
+            background: rgba(88, 101, 242, 0.2);
+            color: #5865f2;
+        }
+
+        .item-card .actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .item-card .actions button {
+            background: none;
+            border: none;
+            color: #6a7488;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .item-card .actions .edit-btn:hover {
+            color: #ffb347;
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .item-card .actions .delete-btn:hover {
+            color: #ff4757;
+            background: rgba(255, 71, 87, 0.1);
+        }
+
+        .item-card .actions .view-btn:hover {
+            color: #5865f2;
+            background: rgba(88, 101, 242, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6a7488;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #2a313c;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        /* =============================================
+           THEME TOGGLE
+           ============================================= */
+        .theme-toggle {
+            background: none;
+            border: 2px solid #2a313c;
+            color: #aab3c5;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            border-color: #ff6b35;
+            color: #ff6b35;
+            transform: rotate(30deg);
+        }
+
+        body.light-mode .theme-toggle {
+            border-color: #d0d5dd;
+            color: #4a5568;
+        }
+
+        body.light-mode .theme-toggle:hover {
+            border-color: #ff6b35;
+            color: #ff6b35;
+        }
+
+        /* =============================================
+           TOAST
+           ============================================= */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #1a1f2a, #0b0e14);
+            color: #e0e4ec;
+            padding: 14px 22px;
+            border-radius: 12px;
+            border: 1px solid #2a313c;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s ease;
+            z-index: 9999;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast i {
+            font-size: 1.2rem;
+        }
+        .toast.success i {
+            color: #00b894;
+        }
+        .toast.error i {
+            color: #ff4757;
+        }
+        .toast.info i {
+            color: #5865f2;
+        }
+
+        body.light-mode .toast {
+            background: linear-gradient(135deg, #ffffff, #e8eaed);
+            border-color: #d0d5dd;
+            color: #1a1f2a;
+        }
+
+        /* =============================================
+           RESPONSIVE
+           ============================================= */
+        @media (max-width: 768px) {
+            .panel-header {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .panel-header .actions {
+                justify-content: center;
+            }
+
+            .form-row,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .form-container,
+            .list-container {
+                padding: 18px 16px;
+            }
+
+            .item-card {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .item-card .actions {
+                margin-left: 0;
+                align-self: flex-end;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .change-item-input {
+                flex-wrap: wrap;
+            }
+
+            .change-item-input select {
+                width: 100%;
+            }
+
+            .change-item-input input {
+                min-width: 150px;
+            }
+
+            .tabs {
+                gap: 4px;
+            }
+
+            .tab-btn {
+                padding: 6px 14px;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 15px 10px;
+            }
+
+            .panel-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .stat-card .number {
+                font-size: 1.5rem;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .form-actions button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .toast {
+                right: 15px;
+                left: 15px;
+                bottom: 15px;
+                padding: 12px 16px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- =============================================
+        HEADER
+        ============================================= -->
+        <div class="panel-header">
+            <h1><i class="fas fa-server"></i> Rich PS Admin Panel</h1>
+            <div class="actions">
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button onclick="exportData()" class="btn-secondary">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button onclick="importData()" class="btn-secondary">
+                    <i class="fas fa-upload"></i> Import
+                </button>
+                <button onclick="logoutAdmin()" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- =============================================
+        TABS
+        ============================================= -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="updates"><i class="fas fa-history"></i> Updates</button>
+            <button class="tab-btn" data-tab="tutorials"><i class="fas fa-video"></i> Tutorials</button>
+            <button class="tab-btn" data-tab="team"><i class="fas fa-users"></i> Server Team</button>
+        </div>
+
+        <!-- ==================== TAB 1: UPDATES ==================== -->
+        <div class="tab-content active" id="tab-updates">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="totalUpdates">0</div>
+                    <div class="label">Total Updates</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="lastUpdateDate">-</div>
+                    <div class="label">Last Update</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="totalChanges">0</div>
+                    <div class="label">Total Changes</div>
+                </div>
+            </div>
+
+            <!-- Form Add Update -->
+            <div class="form-container" id="formUpdateContainer">
+                <h2><i class="fas fa-plus-circle"></i> Add New Update</h2>
+                <form id="updateForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="updateDate">Date</label>
+                            <input type="date" id="updateDate" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="updateTitle">Title</label>
+                            <input type="text" id="updateTitle" placeholder="e.g. Patch 27/07/2026" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Changes</label>
+                        <div id="changesContainer">
+                            <div class="change-item-input">
+                                <select class="change-type">
+                                    <option value="add">[+] ADD</option>
+                                    <option value="fix">[-] FIXED</option>
+                                    <option value="remove">[x] REMOVED</option>
+                                    <option value="change">[~] CHANGED</option>
+                                </select>
+                                <input type="text" class="change-text" placeholder="Describe the change..." />
+                                <button type="button" class="remove-change" onclick="removeChange(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-change-btn" onclick="addChangeInput()">
+                            <i class="fas fa-plus"></i> Add Change
+                        </button>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Update</button>
+                        <button type="reset" class="btn-secondary"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Update List -->
+            <div class="list-container">
+                <div class="list-header">
+                    <h2><i class="fas fa-list"></i> All Updates</h2>
+                    <span class="badge" id="updateListCount">0</span>
+                </div>
+                <div id="updateList">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No updates yet. Add your first update above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: TUTORIALS ==================== -->
+        <div class="tab-content" id="tab-tutorials">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="totalTutorials">0</div>
+                    <div class="label">Total Tutorials</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="tutorialPlatforms">0</div>
+                    <div class="label">Platforms</div>
+                </div>
+            </div>
+
+            <!-- Form Add Tutorial -->
+            <div class="form-container" id="formTutorialContainer">
+                <h2><i class="fas fa-plus-circle"></i> Add New Tutorial</h2>
+                <form id="tutorialForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tutorialTitle">Title</label>
+                            <input type="text" id="tutorialTitle" placeholder="e.g. AUTO PTHT Tutorial" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="tutorialPlatform">Platform</label>
+                            <select id="tutorialPlatform" required>
+                                <option value="tiktok">TikTok</option>
+                                <option value="youtube">YouTube</option>
+                                <option value="instagram">Instagram</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutorialDescription">Description</label>
+                        <textarea id="tutorialDescription" placeholder="Brief description of the tutorial..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tutorialUrl">Video URL</label>
+                        <input type="url" id="tutorialUrl" placeholder="https://vt.tiktok.com/..." required />
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Tutorial</button>
+                        <button type="reset" class="btn-secondary"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tutorial List -->
+            <div class="list-container">
+                <div class="list-header">
+                    <h2><i class="fas fa-list"></i> All Tutorials</h2>
+                    <span class="badge" id="tutorialListCount">0</span>
+                </div>
+                <div id="tutorialList">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No tutorials yet. Add your first tutorial above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: SERVER TEAM ==================== -->
+        <div class="tab-content" id="tab-team">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="totalMembers">0</div>
+                    <div class="label">Total Members</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="totalRoles">0</div>
+                    <div class="label">Roles</div>
+                </div>
+            </div>
+
+            <!-- Form Add Team Member -->
+            <div class="form-container" id="formTeamContainer">
+                <h2><i class="fas fa-plus-circle"></i> Add Team Member</h2>
+                <form id="teamForm">
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label for="teamName">Name</label>
+                            <input type="text" id="teamName" placeholder="e.g. YUSZz" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="teamRole">Role</label>
+                            <input type="text" id="teamRole" placeholder="e.g. Server Owner" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="teamBadge">Badge</label>
+                            <select id="teamBadge">
+                                <option value="★ Owner & Coder">★ Owner & Coder</option>
+                                <option value="★ Staff & Helper">★ Staff & Helper</option>
+                                <option value="★ Staff">★ Staff</option>
+                                <option value="★ Developer">★ Developer</option>
+                                <option value="★ Moderator">★ Moderator</option>
+                                <option value="★ Helper">★ Helper</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="teamAvatar">Avatar Icon (Font Awesome)</label>
+                            <select id="teamAvatar">
+                                <option value="fa-crown">👑 Crown</option>
+                                <option value="fa-user-tie">👔 User Tie</option>
+                                <option value="fa-user">👤 User</option>
+                                <option value="fa-code">💻 Code</option>
+                                <option value="fa-hands-helping">🤝 Helping Hands</option>
+                                <option value="fa-users-gear">⚙️ Users Gear</option>
+                                <option value="fa-star">⭐ Star</option>
+                                <option value="fa-shield">🛡️ Shield</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="teamColor">Avatar Color</label>
+                            <select id="teamColor">
+                                <option value="#ff6b35">Orange</option>
+                                <option value="#5865f2">Discord Blue</option>
+                                <option value="#00b894">Green</option>
+                                <option value="#ff4757">Red</option>
+                                <option value="#ffb347">Gold</option>
+                                <option value="#a29bfe">Purple</option>
+                                <option value="#fd79a8">Pink</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="teamQuote">Quote</label>
+                        <textarea id="teamQuote" placeholder="Member's quote or description..." required></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Member</button>
+                        <button type="reset" class="btn-secondary"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Team List -->
+            <div class="list-container">
+                <div class="list-header">
+                    <h2><i class="fas fa-list"></i> Team Members</h2>
+                    <span class="badge" id="teamListCount">0</span>
+                </div>
+                <div id="teamList">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No team members yet. Add your first member above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =============================================
+    TOAST
+    ============================================= -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
+    </div>
+
+    <!-- =============================================
+    JAVASCRIPT
+    ============================================= -->
+    <script>
+        // =============================================
+        // ===== DATA STORAGE KEYS =====
+        // =============================================
+        const KEYS = {
+            UPDATES: 'richps_updates',
+            TUTORIALS: 'richps_tutorials',
+            TEAM: 'richps_team'
+        };
+
+        // =============================================
+        // ===== DATA MANAGEMENT =====
+        // =============================================
+        function getData(key) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function saveData(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+            // Trigger storage event untuk sync ke tab lain
+            window.dispatchEvent(new StorageEvent('storage', {
+                key: key,
+                newValue: JSON.stringify(data)
+            }));
+        }
+
+        // =============================================
+        // ===== LOGOUT =====
+        // =============================================
+        function logoutAdmin() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('richps_admin_session');
+                sessionStorage.removeItem('richps_admin_session');
+                window.location.href = 'admin-login.html';
+            }
+        }
+
+        // =============================================
+        // ===== TABS =====
+        // =============================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                const tabId = this.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+                document.getElementById('tab-' + tabId).classList.add('active');
+            });
+        });
+
+        // =============================================
+        // ===== UPDATES =====
+        // =============================================
+        function renderUpdates() {
+            const updates = getData(KEYS.UPDATES);
+            const container = document.getElementById('updateList');
+            const count = document.getElementById('updateListCount');
+            count.textContent = updates.length;
+
+            document.getElementById('totalUpdates').textContent = updates.length;
+
+            if (updates.length > 0) {
+                const sorted = [...updates].sort((a, b) => new Date(b.date) - new Date(a.date));
+                document.getElementById('lastUpdateDate').textContent = formatDate(sorted[0].date);
+                let totalChanges = 0;
+                updates.forEach(u => totalChanges += (u.changes || []).length);
+                document.getElementById('totalChanges').textContent = totalChanges;
+            } else {
+                document.getElementById('lastUpdateDate').textContent = '-';
+                document.getElementById('totalChanges').textContent = '0';
+            }
+
+            if (updates.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No updates yet. Add your first update above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const sorted = [...updates].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            container.innerHTML = sorted.map((update, index) => {
+                const changesHtml = (update.changes || []).map(c => `
+                    <span class="change-line">
+                        <span class="badge-type ${c.type}">${getBadgeLabel(c.type)}</span>
+                        ${escapeHtml(c.text)}
+                    </span>
+                `).join('');
+
+                return `
+                    <div class="item-card" data-index="${index}">
+                        <div class="content">
+                            <div class="title">${escapeHtml(update.title)}</div>
+                            <div class="meta"><i class="far fa-calendar-alt"></i> ${formatDate(update.date)}</div>
+                            <div class="changes">${changesHtml}</div>
+                        </div>
+                        <div class="actions">
+                            <button class="edit-btn" onclick="editUpdate(${index})" title="Edit">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="delete-btn" onclick="deleteUpdate(${index})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addUpdate(data) {
+            const updates = getData(KEYS.UPDATES);
+            updates.push(data);
+            saveData(KEYS.UPDATES, updates);
+            renderUpdates();
+            showToast('Update added successfully!', 'success');
+        }
+
+        function deleteUpdate(index) {
+            if (!confirm('Delete this update?')) return;
+            const updates = getData(KEYS.UPDATES);
+            const sorted = [...updates].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const actualIndex = updates.indexOf(sorted[index]);
+            if (actualIndex === -1) return;
+            updates.splice(actualIndex, 1);
+            saveData(KEYS.UPDATES, updates);
+            renderUpdates();
+            showToast('Update deleted!', 'success');
+        }
+
+        function editUpdate(index) {
+            const updates = getData(KEYS.UPDATES);
+            const sorted = [...updates].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const actualIndex = updates.indexOf(sorted[index]);
+            if (actualIndex === -1) return;
+
+            const update = updates[actualIndex];
+            document.getElementById('updateDate').value = update.date || '';
+            document.getElementById('updateTitle').value = update.title || '';
+
+            const container = document.getElementById('changesContainer');
+            container.innerHTML = '';
+            (update.changes || []).forEach(c => addChangeInput(c.type, c.text));
+            if ((update.changes || []).length === 0) addChangeInput();
+
+            const form = document.getElementById('updateForm');
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                const data = getFormData();
+                updates[actualIndex] = data;
+                saveData(KEYS.UPDATES, updates);
+                renderUpdates();
+                showToast('Update edited!', 'success');
+                form.onsubmit = defaultUpdateSubmit;
+                resetUpdateForm();
+            };
+            document.getElementById('formUpdateContainer').scrollIntoView({ behavior: 'smooth' });
+            showToast('Edit mode: modify and save!', 'info');
+        }
+
+        function getFormData() {
+            const date = document.getElementById('updateDate').value;
+            const title = document.getElementById('updateTitle').value;
+            const changeInputs = document.querySelectorAll('#changesContainer .change-item-input');
+            const changes = [];
+            changeInputs.forEach(el => {
+                const type = el.querySelector('.change-type').value;
+                const text = el.querySelector('.change-text').value.trim();
+                if (text) changes.push({ type, text });
+            });
+            return { date, title, changes };
+        }
+
+        function resetUpdateForm() {
+            document.getElementById('updateForm').reset();
+            document.getElementById('changesContainer').innerHTML = '';
+            addChangeInput();
+            document.getElementById('updateDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function defaultUpdateSubmit(e) {
+            e.preventDefault();
+            const data = getFormData();
+            if (!data.date || !data.title) {
+                showToast('Please fill in date and title!', 'error');
+                return;
+            }
+            if (data.changes.length === 0) {
+                showToast('Please add at least one change!', 'error');
+                return;
+            }
+            addUpdate(data);
+            resetUpdateForm();
+        }
+
+        // =============================================
+        // ===== TUTORIALS =====
+        // =============================================
+        function renderTutorials() {
+            const tutorials = getData(KEYS.TUTORIALS);
+            const container = document.getElementById('tutorialList');
+            const count = document.getElementById('tutorialListCount');
+            count.textContent = tutorials.length;
+
+            document.getElementById('totalTutorials').textContent = tutorials.length;
+            const platforms = new Set(tutorials.map(t => t.platform));
+            document.getElementById('tutorialPlatforms').textContent = platforms.size;
+
+            if (tutorials.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No tutorials yet. Add your first tutorial above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const platformIcons = { tiktok: 'fab fa-tiktok', youtube: 'fab fa-youtube', instagram: 'fab fa-instagram' };
+
+            container.innerHTML = tutorials.map((tut, index) => `
+                <div class="item-card" data-index="${index}">
+                    <div class="content">
+                        <div class="title"><i class="${platformIcons[tut.platform] || 'fas fa-video'}"></i> ${escapeHtml(tut.title)}</div>
+                        <div class="meta"><i class="fas fa-link"></i> ${escapeHtml(tut.url)}</div>
+                        <div class="sub">${escapeHtml(tut.description)}</div>
+                        <div class="meta"><i class="fab fa-${tut.platform}"></i> ${tut.platform.charAt(0).toUpperCase() + tut.platform.slice(1)}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="view-btn" onclick="window.open('${escapeHtml(tut.url)}', '_blank')" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="edit-btn" onclick="editTutorial(${index})" title="Edit">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deleteTutorial(${index})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addTutorial(data) {
+            const tutorials = getData(KEYS.TUTORIALS);
+            tutorials.push(data);
+            saveData(KEYS.TUTORIALS, tutorials);
+            renderTutorials();
+            showToast('Tutorial added!', 'success');
+        }
+
+        function deleteTutorial(index) {
+            if (!confirm('Delete this tutorial?')) return;
+            const tutorials = getData(KEYS.TUTORIALS);
+            tutorials.splice(index, 1);
+            saveData(KEYS.TUTORIALS, tutorials);
+            renderTutorials();
+            showToast('Tutorial deleted!', 'success');
+        }
+
+        function editTutorial(index) {
+            const tutorials = getData(KEYS.TUTORIALS);
+            const tut = tutorials[index];
+            document.getElementById('tutorialTitle').value = tut.title || '';
+            document.getElementById('tutorialPlatform').value = tut.platform || 'tiktok';
+            document.getElementById('tutorialDescription').value = tut.description || '';
+            document.getElementById('tutorialUrl').value = tut.url || '';
+
+            const form = document.getElementById('tutorialForm');
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                const data = {
+                    title: document.getElementById('tutorialTitle').value,
+                    platform: document.getElementById('tutorialPlatform').value,
+                    description: document.getElementById('tutorialDescription').value,
+                    url: document.getElementById('tutorialUrl').value
+                };
+                tutorials[index] = data;
+                saveData(KEYS.TUTORIALS, tutorials);
+                renderTutorials();
+                showToast('Tutorial edited!', 'success');
+                form.onsubmit = defaultTutorialSubmit;
+                form.reset();
+            };
+            document.getElementById('formTutorialContainer').scrollIntoView({ behavior: 'smooth' });
+            showToast('Edit mode: modify and save!', 'info');
+        }
+
+        function defaultTutorialSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('tutorialTitle').value;
+            const platform = document.getElementById('tutorialPlatform').value;
+            const description = document.getElementById('tutorialDescription').value;
+            const url = document.getElementById('tutorialUrl').value;
+
+            if (!title || !description || !url) {
+                showToast('Please fill all fields!', 'error');
+                return;
+            }
+            addTutorial({ title, platform, description, url });
+            document.getElementById('tutorialForm').reset();
+        }
+
+        // =============================================
+        // ===== TEAM =====
+        // =============================================
+        function renderTeam() {
+            const members = getData(KEYS.TEAM);
+            const container = document.getElementById('teamList');
+            const count = document.getElementById('teamListCount');
+            count.textContent = members.length;
+
+            document.getElementById('totalMembers').textContent = members.length;
+            const roles = new Set(members.map(m => m.role));
+            document.getElementById('totalRoles').textContent = roles.size;
+
+            if (members.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No team members yet. Add your first member above!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = members.map((member, index) => `
+                <div class="item-card" data-index="${index}">
+                    <div class="content">
+                        <div class="title"><i class="fas ${member.avatar || 'fa-user'}" style="color:${member.color || '#ff6b35'};"></i> ${escapeHtml(member.name)}</div>
+                        <div class="meta"><i class="fas fa-tag"></i> ${escapeHtml(member.badge || 'Member')}</div>
+                        <div class="sub"><i class="fas fa-briefcase"></i> ${escapeHtml(member.role)}</div>
+                        <div class="sub" style="font-style:italic;font-size:0.8rem;">"${escapeHtml(member.quote)}"</div>
+                    </div>
+                    <div class="actions">
+                        <button class="edit-btn" onclick="editTeam(${index})" title="Edit">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="delete-btn" onclick="deleteTeam(${index})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addTeam(data) {
+            const members = getData(KEYS.TEAM);
+            members.push(data);
+            saveData(KEYS.TEAM, members);
+            renderTeam();
+            showToast('Team member added!', 'success');
+        }
+
+        function deleteTeam(index) {
+            if (!confirm('Delete this member?')) return;
+            const members = getData(KEYS.TEAM);
+            members.splice(index, 1);
+            saveData(KEYS.TEAM, members);
+            renderTeam();
+            showToast('Member deleted!', 'success');
+        }
+
+        function editTeam(index) {
+            const members = getData(KEYS.TEAM);
+            const member = members[index];
+            document.getElementById('teamName').value = member.name || '';
+            document.getElementById('teamRole').value = member.role || '';
+            document.getElementById('teamBadge').value = member.badge || '★ Staff';
+            document.getElementById('teamAvatar').value = member.avatar || 'fa-user';
+            document.getElementById('teamColor').value = member.color || '#ff6b35';
+            document.getElementById('teamQuote').value = member.quote || '';
+
+            const form = document.getElementById('teamForm');
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                const data = {
+                    name: document.getElementById('teamName').value,
+                    role: document.getElementById('teamRole').value,
+                    badge: document.getElementById('teamBadge').value,
+                    avatar: document.getElementById('teamAvatar').value,
+                    color: document.getElementById('teamColor').value,
+                    quote: document.getElementById('teamQuote').value
+                };
+                members[index] = data;
+                saveData(KEYS.TEAM, members);
+                renderTeam();
+                showToast('Member edited!', 'success');
+                form.onsubmit = defaultTeamSubmit;
+                form.reset();
+            };
+            document.getElementById('formTeamContainer').scrollIntoView({ behavior: 'smooth' });
+            showToast('Edit mode: modify and save!', 'info');
+        }
+
+        function defaultTeamSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('teamName').value;
+            const role = document.getElementById('teamRole').value;
+            const badge = document.getElementById('teamBadge').value;
+            const avatar = document.getElementById('teamAvatar').value;
+            const color = document.getElementById('teamColor').value;
+            const quote = document.getElementById('teamQuote').value;
+
+            if (!name || !role || !quote) {
+                showToast('Please fill name, role, and quote!', 'error');
+                return;
+            }
+            addTeam({ name, role, badge, avatar, color, quote });
+            document.getElementById('teamForm').reset();
+        }
+
+        // =============================================
+        // ===== UTILITY FUNCTIONS =====
+        // =============================================
+        function getBadgeLabel(type) {
+            const map = { 'add': '[+] ADD', 'fix': '[-] FIXED', 'remove': '[x] REMOVED', 'change': '[~] CHANGED' };
+            return map[type] || type.toUpperCase();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch { return dateStr; }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addChangeInput(type = 'add', text = '') {
+            const container = document.getElementById('changesContainer');
+            const div = document.createElement('div');
+            div.className = 'change-item-input';
+            div.innerHTML = `
+                <select class="change-type">
+                    <option value="add" ${type === 'add' ? 'selected' : ''}>[+] ADD</option>
+                    <option value="fix" ${type === 'fix' ? 'selected' : ''}>[-] FIXED</option>
+                    <option value="remove" ${type === 'remove' ? 'selected' : ''}>[x] REMOVED</option>
+                    <option value="change" ${type === 'change' ? 'selected' : ''}>[~] CHANGED</option>
+                </select>
+                <input type="text" class="change-text" placeholder="Describe the change..." value="${escapeHtml(text)}" />
+                <button type="button" class="remove-change" onclick="removeChange(this)"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeChange(btn) {
+            const container = document.getElementById('changesContainer');
+            if (container.children.length <= 1) {
+                showToast('You must have at least one change!', 'error');
+                return;
+            }
+            btn.closest('.change-item-input').remove();
+        }
+
+        // =============================================
+        // ===== TOAST =====
+        // =============================================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const icon = toast.querySelector('i');
+
+            toastMessage.textContent = message;
+            toast.className = 'toast';
+            if (type === 'success') {
+                toast.classList.add('success');
+                icon.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                toast.classList.add('error');
+                icon.className = 'fas fa-exclamation-circle';
+            } else {
+                toast.classList.add('info');
+                icon.className = 'fas fa-info-circle';
+            }
+
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // =============================================
+        // ===== EXPORT / IMPORT =====
+        // =============================================
+        function exportData() {
+            const data = {
+                updates: getData(KEYS.UPDATES),
+                tutorials: getData(KEYS.TUTORIALS),
+                team: getData(KEYS.TEAM),
+                exportedAt: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'richps_backup_' + new Date().toISOString().slice(0,10) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Data exported!', 'success');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.updates) saveData(KEYS.UPDATES, data.updates);
+                        if (data.tutorials) saveData(KEYS.TUTORIALS, data.tutorials);
+                        if (data.team) saveData(KEYS.TEAM, data.team);
+                        renderAll();
+                        showToast('Data imported successfully!', 'success');
+                    } catch (err) {
+                        showToast('Invalid JSON file!', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // =============================================
+        // ===== THEME TOGGLE =====
+        // =============================================
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        const themeIcon = themeToggle.querySelector('i');
+
+        const savedTheme = localStorage.getItem('richps-panel-theme');
+        if (savedTheme === 'light') {
+            body.classList.add('light-mode');
+            themeIcon.className = 'fas fa-sun';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            if (body.classList.contains('light-mode')) {
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('richps-panel-theme', 'light');
+            } else {
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('richps-panel-theme', 'dark');
+            }
+        });
+
+        // =============================================
+        // ===== RENDER ALL =====
+        // =============================================
+        function renderAll() {
+            renderUpdates();
+            renderTutorials();
+            renderTeam();
+        }
+
+        // =============================================
+        // ===== INIT =====
+        // =============================================
+        document.getElementById('updateDate').value = new Date().toISOString().split('T')[0];
+
+        document.getElementById('updateForm').onsubmit = defaultUpdateSubmit;
+        document.getElementById('tutorialForm').onsubmit = defaultTutorialSubmit;
+        document.getElementById('teamForm').onsubmit = defaultTeamSubmit;
+
+        addChangeInput();
+        renderAll();
+
+        console.log('📋 Rich PS Admin Panel Loaded!');
+        const sessionData = localStorage.getItem('richps_admin_session');
+        if (sessionData) {
+            try {
+                const data = JSON.parse(sessionData);
+                console.log('👤 Admin:', data.username || 'Unknown');
+            } catch {}
+        }
+        console.log('📌 3 Modules: Updates, Tutorials, Team');
+        console.log('💡 Data tersimpan di localStorage');
+        console.log('🔐 Klik Logout untuk keluar');
+        console.log('📤 Gunakan Export/Import untuk backup data');
+    </script>
+</body>
+</html>

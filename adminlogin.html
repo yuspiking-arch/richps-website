@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Rich PS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* =============================================
+           GLOBAL STYLES
+           ============================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b0e14;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.light-mode {
+            background: #f0f2f5;
+        }
+
+        /* Background Decoration */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(255, 107, 53, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(255, 107, 53, 0.05) 0%, transparent 50%);
+            animation: rotateBg 60s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes rotateBg {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            background: linear-gradient(145deg, #1a1f2a, #131820);
+            border-radius: 24px;
+            border: 1px solid #2a313c;
+            padding: 40px 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.6s ease-out;
+            transition: all 0.3s;
+        }
+
+        body.light-mode .login-container {
+            background: linear-gradient(145deg, #ffffff, #e8eaed);
+            border-color: #d0d5dd;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideUp {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a1f2a, #2a313c);
+            border: 3px solid #ff6b35;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(255, 107, 53, 0.2);
+            transition: all 0.3s;
+        }
+
+        body.light-mode .login-logo {
+            background: linear-gradient(135deg, #e8eaed, #d0d5dd);
+        }
+
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .login-logo:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 60px rgba(255, 107, 53, 0.3);
+        }
+
+        .login-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #f0f4fa;
+            letter-spacing: 1px;
+        }
+
+        body.light-mode .login-title {
+            color: #1a1f2a;
+        }
+
+        .login-title span {
+            background: linear-gradient(135deg, #ff6b35, #ffb347);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            font-size: 0.85rem;
+            color: #6a7488;
+            margin-top: 5px;
+        }
+
+        body.light-mode .login-subtitle {
+            color: #4a5568;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #bcc5d6;
+            margin-bottom: 6px;
+        }
+
+        body.light-mode .form-group label {
+            color: #4a5568;
+        }
+
+        .form-group .input-wrapper {
+            position: relative;
+        }
+
+        .form-group .input-wrapper i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6a7488;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group .input-wrapper input {
+            width: 100%;
+            padding: 12px 14px 12px 44px;
+            border-radius: 12px;
+            border: 2px solid #2a313c;
+            background: #0b0e14;
+            color: #e0e4ec;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        body.light-mode .form-group .input-wrapper input {
+            background: #ffffff;
+            color: #1a1f2a;
+            border-color: #d0d5dd;
+        }
+
+        .form-group .input-wrapper input:focus {
+            border-color: #ff6b35;
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.15);
+        }
+
+        .form-group .input-wrapper input:focus + i,
+        .form-group .input-wrapper input:focus ~ i {
+            color: #ff6b35;
+        }
+
+        .form-group .input-wrapper input::placeholder {
+            color: #6a7488;
+        }
+
+        body.light-mode .form-group .input-wrapper input::placeholder {
+            color: #a0a8b8;
+        }
+
+        /* Show Password */
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6a7488;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            padding: 4px;
+        }
+
+        .toggle-password:hover {
+            color: #ff6b35;
+        }
+
+        /* Options */
+        .login-options {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .login-options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6a7488;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        body.light-mode .login-options label {
+            color: #4a5568;
+        }
+
+        .login-options label input[type="checkbox"] {
+            accent-color: #ff6b35;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .login-options a {
+            color: #ff6b35;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .login-options a:hover {
+            color: #ffb347;
+            text-decoration: underline;
+        }
+
+        /* Button */
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #ff6b35, #ff4500);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(255, 107, 53, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            transform: rotate(45deg) translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .btn-login:hover::before {
+            transform: rotate(45deg) translateX(100%);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.6);
+        }
+
+        .btn-login:active {
+            transform: translateY(0px);
+        }
+
+        .btn-login i {
+            font-size: 1.1rem;
+        }
+
+        .btn-login.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .btn-login.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Error Message */
+        .error-message {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            color: #ff4757;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            display: none;
+            margin-bottom: 15px;
+            align-items: center;
+            gap: 10px;
+            animation: shake 0.5s ease;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .error-message i {
+            font-size: 1rem;
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #2a313c;
+            font-size: 0.75rem;
+            color: #6a7488;
+        }
+
+        body.light-mode .login-footer {
+            border-color: #d0d5dd;
+            color: #4a5568;
+        }
+
+        .login-footer a {
+            color: #ff6b35;
+            text-decoration: none;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: none;
+            border: 2px solid #2a313c;
+            color: #aab3c5;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(11, 14, 20, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        body.light-mode .theme-toggle {
+            border-color: #d0d5dd;
+            color: #4a5568;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .theme-toggle:hover {
+            border-color: #ff6b35;
+            color: #ff6b35;
+            transform: rotate(30deg);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #1a1f2a, #0b0e14);
+            color: #e0e4ec;
+            padding: 14px 22px;
+            border-radius: 12px;
+            border: 1px solid #2a313c;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.5s ease;
+            z-index: 9999;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast i {
+            font-size: 1.2rem;
+        }
+        .toast.success i {
+            color: #00b894;
+        }
+        .toast.error i {
+            color: #ff4757;
+        }
+        .toast.info i {
+            color: #5865f2;
+        }
+
+        body.light-mode .toast {
+            background: linear-gradient(135deg, #ffffff, #e8eaed);
+            border-color: #d0d5dd;
+            color: #1a1f2a;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                border-radius: 16px;
+            }
+            .login-title {
+                font-size: 1.5rem;
+            }
+            .login-logo {
+                width: 65px;
+                height: 65px;
+            }
+            .login-options {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .theme-toggle {
+                top: 15px;
+                right: 15px;
+                width: 35px;
+                height: 35px;
+                font-size: 0.95rem;
+            }
+            .toast {
+                right: 15px;
+                left: 15px;
+                bottom: 15px;
+                padding: 12px 16px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .login-container {
+                padding: 20px 15px;
+            }
+            .btn-login {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Login Container -->
+    <div class="login-container">
+        <div class="login-header">
+            <div class="login-logo">
+                <img src="https://i.ibb.co.com/207nR756/Whats-App-Image-2026-07-24-at-15-53-22.jpg" alt="Rich PS Logo">
+            </div>
+            <h1 class="login-title"><span>Rich PS</span> Admin</h1>
+            <p class="login-subtitle">Login to manage your server content</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="errorText">Invalid username or password!</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" autocomplete="off">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="Enter username" 
+                        required
+                        autocomplete="off"
+                        value="admin"
+                    >
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Enter password" 
+                        required
+                        autocomplete="off"
+                        value="RichPS2026"
+                    >
+                    <button type="button" class="toggle-password" id="togglePassword">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-options">
+                <label>
+                    <input type="checkbox" id="rememberMe" checked>
+                    Remember me
+                </label>
+                <a href="#" onclick="showToast('Contact admin to reset password', 'info')">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="btn-login" id="loginBtn">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Login</span>
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p>Protected by <a href="#">Rich PS Security</a> | v2.0</p>
+            <p style="margin-top:4px;font-size:0.65rem;color:#4a5568;">
+                <i class="fas fa-shield-alt"></i> Secure Login
+            </p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Success!</span>
+    </div>
+
+    <script>
+        // =============================================
+        // ===== KONFIGURASI =====
+        // =============================================
+        const ADMIN_CONFIG = {
+            username: 'admin',
+            password: 'RichPS2026',
+            sessionKey: 'richps_admin_session',
+            maxAttempts: 5,
+            lockoutTime: 300000 // 5 menit
+        };
+
+        // =============================================
+        // ===== STATE =====
+        // =============================================
+        let loginAttempts = 0;
+        let isLocked = false;
+        let lockTimer = null;
+
+        // =============================================
+        // ===== DOM ELEMENTS =====
+        // =============================================
+        const form = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const togglePassword = document.getElementById('togglePassword');
+        const rememberMe = document.getElementById('rememberMe');
+
+        // =============================================
+        // ===== CEK SESSION =====
+        // =============================================
+        function checkSession() {
+            const session = localStorage.getItem(ADMIN_CONFIG.sessionKey);
+            if (session) {
+                try {
+                    const data = JSON.parse(session);
+                    if (data.expiry > Date.now()) {
+                        window.location.href = 'admin.html';
+                        return true;
+                    } else {
+                        localStorage.removeItem(ADMIN_CONFIG.sessionKey);
+                    }
+                } catch {
+                    localStorage.removeItem(ADMIN_CONFIG.sessionKey);
+                }
+            }
+            return false;
+        }
+
+        // =============================================
+        // ===== LOGIN HANDLER =====
+        // =============================================
+        function handleLogin(e) {
+            e.preventDefault();
+
+            if (isLocked) {
+                showError('Too many failed attempts. Please wait 5 minutes.');
+                return;
+            }
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                showError('Please enter username and password!');
+                return;
+            }
+
+            loginBtn.classList.add('loading');
+            loginBtn.querySelector('span').textContent = 'Logging in...';
+
+            setTimeout(() => {
+                if (username === ADMIN_CONFIG.username && password === ADMIN_CONFIG.password) {
+                    loginSuccess();
+                } else {
+                    loginFailed();
+                }
+            }, 800);
+        }
+
+        function loginSuccess() {
+            loginAttempts = 0;
+
+            const session = {
+                username: ADMIN_CONFIG.username,
+                expiry: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 hari
+            };
+
+            if (rememberMe.checked) {
+                localStorage.setItem(ADMIN_CONFIG.sessionKey, JSON.stringify(session));
+            } else {
+                sessionStorage.setItem(ADMIN_CONFIG.sessionKey, JSON.stringify(session));
+            }
+
+            loginBtn.classList.remove('loading');
+            loginBtn.querySelector('span').textContent = 'Login';
+
+            showToast('Login successful! Redirecting...', 'success');
+
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 500);
+        }
+
+        function loginFailed() {
+            loginAttempts++;
+            const remaining = ADMIN_CONFIG.maxAttempts - loginAttempts;
+
+            loginBtn.classList.remove('loading');
+            loginBtn.querySelector('span').textContent = 'Login';
+
+            if (loginAttempts >= ADMIN_CONFIG.maxAttempts) {
+                isLocked = true;
+                showError(`Account locked! Please wait 5 minutes.`);
+                loginBtn.disabled = true;
+                loginBtn.style.opacity = '0.5';
+
+                lockTimer = setTimeout(() => {
+                    isLocked = false;
+                    loginAttempts = 0;
+                    loginBtn.disabled = false;
+                    loginBtn.style.opacity = '1';
+                    hideError();
+                    showToast('Account unlocked! You can try again.', 'info');
+                }, ADMIN_CONFIG.lockoutTime);
+
+                showError(`Too many failed attempts! Locked for 5 minutes.`);
+            } else {
+                showError(`Invalid username or password! ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`);
+                form.classList.remove('shake');
+                void form.offsetWidth;
+                form.classList.add('shake');
+            }
+
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+
+        // =============================================
+        // ===== UI FUNCTIONS =====
+        // =============================================
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        // =============================================
+        // ===== TOGGLE PASSWORD =====
+        // =============================================
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.querySelector('i').className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+        });
+
+        // =============================================
+        // ===== THEME TOGGLE =====
+        // =============================================
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        const themeIcon = themeToggle.querySelector('i');
+
+        const savedTheme = localStorage.getItem('richps-login-theme');
+        if (savedTheme === 'light') {
+            body.classList.add('light-mode');
+            themeIcon.className = 'fas fa-sun';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            if (body.classList.contains('light-mode')) {
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('richps-login-theme', 'light');
+            } else {
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('richps-login-theme', 'dark');
+            }
+        });
+
+        // =============================================
+        // ===== TOAST =====
+        // =============================================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const icon = toast.querySelector('i');
+
+            toastMessage.textContent = message;
+            toast.className = 'toast';
+            if (type === 'success') {
+                toast.classList.add('success');
+                icon.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                toast.classList.add('error');
+                icon.className = 'fas fa-exclamation-circle';
+            } else {
+                toast.classList.add('info');
+                icon.className = 'fas fa-info-circle';
+            }
+
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // =============================================
+        // ===== KEYBOARD SHORTCUTS =====
+        // =============================================
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Shift+L untuk clear session
+            if (e.ctrlKey && e.shiftKey && e.key === 'L') {
+                localStorage.removeItem(ADMIN_CONFIG.sessionKey);
+                sessionStorage.removeItem(ADMIN_CONFIG.sessionKey);
+                showToast('Session cleared!', 'info');
+            }
+        });
+
+        // =============================================
+        // ===== EVENT LISTENERS =====
+        // =============================================
+        form.addEventListener('submit', handleLogin);
+
+        usernameInput.addEventListener('input', hideError);
+        passwordInput.addEventListener('input', hideError);
+
+        usernameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') passwordInput.focus();
+        });
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+        });
+
+        // =============================================
+        // ===== INIT =====
+        // =============================================
+        if (!checkSession()) {
+            const session = sessionStorage.getItem(ADMIN_CONFIG.sessionKey);
+            if (session) {
+                try {
+                    const data = JSON.parse(session);
+                    if (data.expiry > Date.now()) {
+                        window.location.href = 'admin.html';
+                    } else {
+                        sessionStorage.removeItem(ADMIN_CONFIG.sessionKey);
+                    }
+                } catch {
+                    sessionStorage.removeItem(ADMIN_CONFIG.sessionKey);
+                }
+            }
+        }
+
+        console.log('🔐 Admin Login Page Loaded');
+        console.log('💡 Default credentials: admin / RichPS2026');
+        console.log('💡 Keyboard shortcut: Ctrl+Shift+L to clear session');
+        console.log('📌 Data akan tersimpan di localStorage');
+    </script>
+</body>
+</html>
