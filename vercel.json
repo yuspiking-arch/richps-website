@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "admin/panel.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/public/index.html"
+    },
+    {
+      "src": "/admin",
+      "dest": "/admin/panel.html"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/panel.html"
+    }
+  ]
+}
